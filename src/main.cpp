@@ -1,6 +1,15 @@
 #include <cstdio>
+#include <cstring>
+#include <vector>
 #include <SDL.h>
 #include <SDL_image.h>
+#include <opencv2/imgproc.hpp>
+#include <opencv2/imgcodecs.hpp>
+
+int bgr888_width;
+int bgr888_height;
+
+typedef SDL_Surface *(*surface_loader)(const char *);
 
 void sdl_dump_version()
 {
@@ -9,7 +18,49 @@ void sdl_dump_version()
     printf("SDL2 version: v%d.%d.%d\n", ver.major, ver.minor, ver.patch);
 }
 
-void sdl_draw_frame(const char *image_path)
+SDL_Surface *opencv_load_surface(const char *image_path)
+{
+    printf("use: opencv image decoder\n");
+    cv::Mat mat = cv::imread(image_path, cv::IMREAD_COLOR);
+    SDL_Surface *surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 
+                                                mat.cols, mat.rows, 24, 
+                                                0xFF0000, 0x00FF00, 0x0000FF,
+                                                0);
+    memcpy(surface->pixels, mat.data, mat.cols * mat.rows * 3);
+
+    return surface;
+}
+
+SDL_Surface *ffmpeg_load_surface(const char *image_path)
+{
+    return NULL;
+}
+
+SDL_Surface *bgr888_load_surface(const char *image_path)
+{
+    printf("use: raw bgr888 image is used\n");
+    SDL_Surface *surface = SDL_CreateRGBSurface(SDL_SWSURFACE, 
+                                                bgr888_width, bgr888_height, 24, 
+                                                0xFF0000, 0x00FF00, 0x0000FF,
+                                                0);
+    int nread = 0;
+    int total = bgr888_width * bgr888_height * 3;
+    int rc;
+    FILE *fin = fopen(image_path, "rb");
+    while (nread < total && (rc = fread((unsigned char *) surface->pixels + nread, 1, 1024, fin)) != EOF) {
+        nread += rc;
+    }
+    
+    if (nread != total) {
+        SDL_FreeSurface(surface);
+        surface = NULL;
+    }
+
+    fclose(fin);
+    return surface;
+}
+
+void sdl_draw_frame(surface_loader loader, const char *image_path)
 {
     SDL_Window *win;
     SDL_Renderer *renderer;
@@ -21,8 +72,11 @@ void sdl_draw_frame(const char *image_path)
         exit(-1);
     }
 
-    surface = IMG_Load(image_path);
-    // show image path in window title
+    surface = loader(image_path);
+    if (surface == NULL) {
+        fprintf(stderr,"create surface failed\n");
+        return;
+    }
     win = SDL_CreateWindow(image_path,
                            SDL_WINDOWPOS_CENTERED,
                            SDL_WINDOWPOS_CENTERED,
@@ -53,15 +107,32 @@ void sdl_draw_frame(const char *image_path)
 
 void usage()
 {
-    fprintf(stderr, "Usage: FrameViewer BGR888_FRAME_PATH\n");
+    fprintf(stderr, "Usage: FrameViewer decoder image_path [width, height]\n"
+                    "       decoder: default, opencv, ffmpeg, bgr888\n"
+                    "       Note: bgr888 requires image width and height\n");
     exit(-1);
 }
 
 int main(int argc, char *argv[]) 
 {
     sdl_dump_version();
-    if (argc < 2) usage();
-    sdl_draw_frame(argv[1]);
+    if (argc < 3) usage();
+
+    surface_loader loader;
+    if (!strcmp(argv[1], "opencv")) {
+        loader = opencv_load_surface;
+    } else if (!strcmp(argv[1], "bgr888")) {
+        if (argc < 5) usage();
+        sscanf(argv[3], "%d", &bgr888_width);
+        sscanf(argv[4], "%d", &bgr888_height);
+        loader = bgr888_load_surface;
+    } else if (!strcmp(argv[1], "ffmpeg")) {
+        loader = ffmpeg_load_surface;
+    } else {
+        loader = IMG_Load;
+    }
+
+    sdl_draw_frame(loader, argv[2]);
 
     return 0;
 }
