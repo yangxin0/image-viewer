@@ -1,3 +1,5 @@
+#! /usr/bin/env python
+
 import sys
 import struct
 import cv2
@@ -14,4 +16,7 @@ def main(_, image_path, bgr888_path):
 
 
 if __name__ == "__main__":
+    if len(sys.argv) != 3:
+        print("Usage: ./dump_bgr888.py image_path output_path")
+        exit(-1)
     main(*sys.argv)
