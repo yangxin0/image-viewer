@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10.0)
 project(ImageViewer)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 aux_source_directory(${PROJECT_SOURCE_DIR}/src SRC)
 find_package(PkgConfig REQUIRED)
 pkg_search_module(SDL2 REQUIRED sdl2)

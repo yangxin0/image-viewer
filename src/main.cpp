@@ -31,11 +31,6 @@ SDL_Surface *opencv_load_surface(const char *image_path)
     return surface;
 }
 
-SDL_Surface *ffmpeg_load_surface(const char *image_path)
-{
-    return NULL;
-}
-
 SDL_Surface *bgr888_load_surface(const char *image_path)
 {
     printf("use: raw bgr888 image is used\n");
@@ -126,8 +121,6 @@ int main(int argc, char *argv[])
         sscanf(argv[3], "%d", &bgr888_width);
         sscanf(argv[4], "%d", &bgr888_height);
         loader = bgr888_load_surface;
-    } else if (!strcmp(argv[1], "ffmpeg")) {
-        loader = ffmpeg_load_surface;
     } else {
         loader = IMG_Load;
     }
