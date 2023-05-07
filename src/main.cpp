@@ -103,7 +103,7 @@ void sdl_draw_frame(surface_loader loader, const char *image_path)
 void usage()
 {
     fprintf(stderr, "Usage: FrameViewer decoder image_path [width, height]\n"
-                    "       decoder: default, opencv, ffmpeg, bgr888\n"
+                    "       decoder: default, opencv, bgr888\n"
                     "       Note: bgr888 requires image width and height\n");
     exit(-1);
 }
